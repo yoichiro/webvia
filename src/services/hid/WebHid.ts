@@ -16,11 +16,15 @@ import {
   IFetchRGBLightColorResult,
   IFetchRGBLightEffectSpeedResult,
   IFetchRGBLightEffectResult,
+  IGetMacroCountResult,
+  IGetMacroBufferSizeResult,
 } from './Hid';
 import { KeycodeList } from './KeycodeList';
 
 import {
   DynamicKeymapGetLayerCountCommand,
+  DynamicKeymapMacroGetBufferSizeCommand,
+  DynamicKeymapMacroGetCountCommand,
   DynamicKeymapReadBufferCommand,
   DynamicKeymapSetKeycodeCommand,
   IDynamicKeymapReadBufferResponse,
@@ -631,6 +635,52 @@ export class Keyboard implements IKeyboard {
         return this.enqueue(command);
       })
     );
+  }
+
+  getMacroCount(): Promise<IGetMacroCountResult> {
+    return new Promise<IGetMacroCountResult>((resolve) => {
+      const command = new DynamicKeymapMacroGetCountCommand(
+        {},
+        async (result) => {
+          if (result.success) {
+            resolve({
+              success: true,
+              count: result.response!.count,
+            });
+          } else {
+            resolve({
+              success: false,
+              error: result.error,
+              cause: result.cause,
+            });
+          }
+        }
+      );
+      return this.enqueue(command);
+    });
+  }
+
+  getMacroBufferSize(): Promise<IGetMacroBufferSizeResult> {
+    return new Promise<IGetMacroBufferSizeResult>((resolve) => {
+      const command = new DynamicKeymapMacroGetBufferSizeCommand(
+        {},
+        async (result) => {
+          if (result.success) {
+            resolve({
+              success: true,
+              bufferSize: result.response!.bufferSize,
+            });
+          } else {
+            resolve({
+              success: false,
+              error: result.error,
+              cause: result.cause,
+            });
+          }
+        }
+      );
+      return this.enqueue(command);
+    });
   }
 }
 

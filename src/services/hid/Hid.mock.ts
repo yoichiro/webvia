@@ -4,6 +4,7 @@ import {
   ICommand,
   IConnectionEventHandler,
   IConnectParams,
+  IGetMacroCountResult,
   IHid,
   IKeyboard,
 } from './Hid';
@@ -155,6 +156,16 @@ export const mockIKeyboad: IKeyboard = {
   updateRGBLightColor: (hue: number, sat: number) => {
     return new Promise((resolve) => {
       resolve({ success: true });
+    });
+  },
+  getMacroCount: () => {
+    return new Promise((resolve) => {
+      resolve({ success: true, count: 0 });
+    });
+  },
+  getMacroBufferSize: () => {
+    return new Promise((resolve) => {
+      resolve({ success: true, bufferSize: 0 });
     });
   },
 };

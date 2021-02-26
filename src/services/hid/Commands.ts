@@ -338,3 +338,97 @@ export class DynamicKeymapReadBufferCommand extends AbstractCommand<
     );
   }
 }
+
+export interface IDynamicKeymapMacroGetCountResponse extends ICommandResponse {
+  count: number;
+}
+
+export class DynamicKeymapMacroGetCountCommand extends AbstractCommand<
+  ICommandRequest,
+  IDynamicKeymapMacroGetCountResponse
+> {
+  createReport(): Uint8Array {
+    return new Uint8Array([0x0c]);
+  }
+
+  createResponse(resultArray: Uint8Array): IDynamicKeymapMacroGetCountResponse {
+    const count = resultArray[1];
+    return {
+      count,
+    };
+  }
+
+  isSameRequest(resultArray: Uint8Array): boolean {
+    return resultArray[0] === 0x0c;
+  }
+}
+
+export interface IDynamicKeymapMacroGetBufferSizeResponse
+  extends ICommandResponse {
+  bufferSize: number;
+}
+
+export class DynamicKeymapMacroGetBufferSizeCommand extends AbstractCommand<
+  ICommandRequest,
+  IDynamicKeymapMacroGetBufferSizeResponse
+> {
+  createReport(): Uint8Array {
+    return new Uint8Array([0x0d]);
+  }
+
+  createResponse(
+    resultArray: Uint8Array
+  ): IDynamicKeymapMacroGetBufferSizeResponse {
+    const bufferSize = resultArray[1] << 8 || resultArray[2];
+    return {
+      bufferSize,
+    };
+  }
+
+  isSameRequest(resultArray: Uint8Array): boolean {
+    return resultArray[0] === 0x0d;
+  }
+}
+
+export interface IDynamicKeymapMacroGetBufferRequest extends ICommandRequest {
+  offset: number;
+  size: number;
+}
+
+export interface IDynamicKeymapMacroGetBufferResponse extends ICommandResponse {
+  offset: number;
+  size: number;
+  buffer: Uint8Array;
+}
+
+export class DynamicKeymapMacroGetBufferCommand extends AbstractCommand<
+  IDynamicKeymapMacroGetBufferRequest,
+  IDynamicKeymapMacroGetBufferResponse
+> {
+  createReport(): Uint8Array {
+    const req = this.getRequest();
+    return new Uint8Array([0x0e, req.offset >> 8, req.offset & 0xff, req.size]);
+  }
+
+  createResponse(
+    resultArray: Uint8Array
+  ): IDynamicKeymapMacroGetBufferResponse {
+    const offset = (resultArray[1] << 8) | resultArray[2];
+    const size = resultArray[3];
+    return {
+      offset,
+      size,
+      buffer: resultArray.slice(4),
+    };
+  }
+
+  isSameRequest(resultArray: Uint8Array): boolean {
+    const req = this.getRequest();
+    return (
+      resultArray[0] === 0x0e &&
+      resultArray[1] === req.offset >> 8 &&
+      resultArray[2] === (req.offset & 0xff) &&
+      resultArray[3] === req.size
+    );
+  }
+}

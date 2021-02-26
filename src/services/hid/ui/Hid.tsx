@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import './Hid.scss';
 import {
   DynamicKeymapGetKeycodeCommand,
+  DynamicKeymapMacroGetBufferCommand,
   DynamicKeymapReadBufferCommand,
   LightingGetValueCommand,
   LightingSetValueCommand,
@@ -32,6 +33,8 @@ const Hid = () => {
   const [bufferOffset, setBufferOffset] = useState<number>(0);
   const [bufferSize, setBufferSize] = useState<number>(28);
   const [lightingKind, setLightingKind] = useState<number>(0);
+  const [macroOffset, setMacroOffset] = useState<number>(0);
+  const [macroSize, setMacroSize] = useState<number>(0);
 
   useEffect(() => {
     webHid
@@ -283,6 +286,39 @@ const Hid = () => {
     console.log(await keyboard!.fetchRGBLightEffectSpeed());
   };
 
+  const handleMacroGetCountClick = async () => {
+    console.log(await keyboard!.getMacroCount());
+  };
+
+  const handleMacroGetBufferSizeClick = async () => {
+    console.log(await keyboard!.getMacroBufferSize());
+  };
+
+  const handleMacroOffsetChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setMacroOffset(Number(event.target.value));
+  };
+
+  const handleMacroSizeChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setMacroSize(Number(event.target.value));
+  };
+
+  const handleMacroGetBufferClick = async () => {
+    const command = new DynamicKeymapMacroGetBufferCommand(
+      {
+        offset: macroOffset,
+        size: macroSize,
+      },
+      async (result) => {
+        console.log(result);
+      }
+    );
+    await keyboard!.enqueue(command);
+  };
+
   return (
     <div className="hid">
       <h1>WebHid Test</h1>
@@ -482,6 +518,29 @@ const Hid = () => {
         </select>
         <button onClick={handleGetLightingKindClick}>Read Lighting kind</button>
         <button onClick={handleGetLightingTestClick}>Test</button>
+      </div>
+      <div className="box">
+        <button onClick={handleMacroGetCountClick}>Macro Get Count</button>
+        <button onClick={handleMacroGetBufferSizeClick}>
+          Macro Get Buffer Size
+        </button>
+        <label htmlFor="macroOffset">Offset</label>
+        <input
+          type="number"
+          id="macroOffset"
+          min={0}
+          value={macroOffset}
+          onChange={handleMacroOffsetChange}
+        />
+        <label htmlFor="macroSize">Size</label>
+        <input
+          type="number"
+          id="macroSize"
+          min={0}
+          value={macroSize}
+          onChange={handleMacroSizeChange}
+        />
+        <button onClick={handleMacroGetBufferClick}>Get Buffer</button>
       </div>
       <div className="box">
         <label htmlFor="Test">Test</label>

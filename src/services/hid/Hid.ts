@@ -100,6 +100,16 @@ export interface IFetchRGBLightColorResult extends IResult {
   sat?: number;
 }
 
+export interface IGetMacroCountResult extends IResult {
+  count?: number;
+}
+
+export interface IGetMacroBufferSizeResult extends IResult {
+  bufferSize?: number;
+}
+
+export interface IGetMacroGetBufferResult extends IResult {}
+
 export interface IKeyboard {
   getDevice(): any;
   getHid(): IHid;
@@ -133,6 +143,8 @@ export interface IKeyboard {
   updateRGBLightEffect(mode: number): Promise<IResult>;
   updateRGBLightEffectSpeed(speed: number): Promise<IResult>;
   updateRGBLightColor(hue: number, sat: number): Promise<IResult>;
+  getMacroCount(): Promise<IGetMacroCountResult>;
+  getMacroBufferSize(): Promise<IGetMacroBufferSizeResult>;
 }
 
 export interface ICommand {
