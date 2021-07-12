@@ -38,7 +38,9 @@ export const IHidMock: IHid = {
 };
 
 export const mockIKeyboad: IKeyboard = {
-  getDevice: () => {},
+  getDevice: () => {
+    return new HIDDevice();
+  },
   getHid: () => {
     return IHidMock;
   },

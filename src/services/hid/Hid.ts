@@ -110,7 +110,7 @@ export interface IFetchLayoutOptionsResult extends IResult {
 }
 
 export interface IKeyboard {
-  getDevice(): any;
+  getDevice(): HIDDevice;
   getHid(): IHid;
   getInformation(): IDeviceInformation;
   open(): Promise<IResult>;

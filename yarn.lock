@@ -3270,6 +3270,11 @@
   resolved "https://registry.yarnpkg.com/@types/unist/-/unist-2.0.3.tgz#9c088679876f374eb5983f150d4787aa6fb32d7e"
   integrity sha512-FvUupuM3rlRsRtCN+fDudtmytGO6iHJuuRKS1Ss0pG5z8oX0diNEw94UEL7hgDbpN94rgaK5R7sWm6RrSkZuAQ==
 
+"@types/w3c-web-hid@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@types/w3c-web-hid/-/w3c-web-hid-1.0.1.tgz#d7bc1af06f4d6a42aac008ff76d5b4ad8b851bc3"
+  integrity sha512-zdOo3wWpuxt3UHgx983TyRxkG17yMDjrvSwmVM4kC4ysLsxIjdNNP/jx4xG4LAm6ISu3WohD1ZEIu+p49ToEFA==
+
 "@types/webpack-env@^1.15.3":
   version "1.16.0"
   resolved "https://registry.yarnpkg.com/@types/webpack-env/-/webpack-env-1.16.0.tgz#8c0a9435dfa7b3b1be76562f3070efb3f92637b4"

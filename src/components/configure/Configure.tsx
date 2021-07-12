@@ -121,7 +121,6 @@ class Configure extends React.Component<ConfigureProps, OwnState> {
   }
 
   componentDidUpdate() {
-    console.log(`componentDidUpdate: ${this.props.testMatrix}`);
     this.updateTitle();
     this.updateNotifications();
 

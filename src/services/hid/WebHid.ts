@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import {
   ICommand,
   IConnectParams,
@@ -20,7 +19,6 @@ import {
   IFetchLayoutOptionsResult,
 } from './Hid';
 import { KeycodeList } from './KeycodeList';
-
 import {
   BleMicroProStoreKeymapPersistentlyCommand,
   DynamicKeymapGetLayerCountCommand,
@@ -44,10 +42,10 @@ import { KeyboardLabelLang } from '../labellang/KeyLabelLangs';
 
 export class Keyboard implements IKeyboard {
   private readonly hid: IHid;
-  private readonly device: any;
+  private readonly device: HIDDevice;
   private commandQueue: ICommand[];
 
-  constructor(hid: IHid, device: any) {
+  constructor(hid: IHid, device: HIDDevice) {
     this.hid = hid;
     this.commandQueue = [];
     this.device = device;
@@ -59,14 +57,14 @@ export class Keyboard implements IKeyboard {
 
   getInformation(): IDeviceInformation {
     return {
-      vendorId: this.device.vendorId,
-      productId: this.device.productId,
-      productName: this.device.productName,
+      vendorId: this.device.vendorId!,
+      productId: this.device.productId!,
+      productName: this.device.productName!,
     };
   }
 
   isOpened(): boolean {
-    return this.device.opened;
+    return this.device.opened!;
   }
 
   async close(): Promise<void> {
@@ -82,7 +80,7 @@ export class Keyboard implements IKeyboard {
     }
   }
 
-  getDevice(): any {
+  getDevice(): HIDDevice {
     return this.device;
   }
 
@@ -772,17 +770,17 @@ export class WebHid implements IHid {
   private handler?: IConnectionEventHandler;
 
   async detectKeyboards(): Promise<IKeyboard[]> {
-    const devices = await (navigator as any).hid.getDevices();
+    const devices = await navigator.hid.getDevices();
     return devices
-      .filter((device: any) => {
-        const collectionInfo = device.collections[0];
+      .filter((device: HIDDevice) => {
+        const collectionInfo = device.collections![0];
         return (
           collectionInfo &&
           collectionInfo.usage === 0x61 &&
           collectionInfo.usagePage === 0xff60
         );
       })
-      .map((device: any) => {
+      .map((device: HIDDevice) => {
         return new Keyboard(this, device);
       });
   }
@@ -792,7 +790,7 @@ export class WebHid implements IHid {
     try {
       let devices;
       if (connectParams) {
-        devices = await (navigator as any).hid.requestDevice({
+        devices = await navigator.hid.requestDevice({
           filters: [
             {
               vendorId: connectParams.vendorId,
@@ -803,7 +801,7 @@ export class WebHid implements IHid {
           ],
         });
       } else {
-        devices = await (navigator as any).hid.requestDevice({
+        devices = await navigator.hid.requestDevice({
           filters: [
             {
               usagePage: 0xff60,

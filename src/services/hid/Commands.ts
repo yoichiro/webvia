@@ -13,7 +13,6 @@ export abstract class AbstractCommand<
   private readonly request: TRequest;
   private readonly responseHandler: ICommandResponseHandler<TResponse>;
 
-  static OUTPUT_REPORT_ID: number = 0x00;
   static RAW_BUFFER_SIZE: number = 32;
 
   constructor(
@@ -38,12 +37,16 @@ export abstract class AbstractCommand<
   // eslint-disable-next-line no-unused-vars
   abstract isSameRequest(resultArray: Uint8Array): boolean;
 
-  async sendReport(device: any): Promise<void> {
+  async sendReport(device: HIDDevice): Promise<void> {
     try {
       const outputReport = new Uint8Array(AbstractCommand.RAW_BUFFER_SIZE);
       outputReport.set(this.createReport());
-      outputUint8Array('Send data', outputReport);
-      await device.sendReport(AbstractCommand.OUTPUT_REPORT_ID, outputReport);
+      const outputReportId = this.getOutputReportId(device);
+      outputUint8Array(
+        `Send data (output report ID: ${outputReportId})`,
+        outputReport
+      );
+      await device.sendReport(outputReportId, outputReport);
     } catch (error) {
       await this.getResponseHandler()({
         success: false,
@@ -51,6 +54,25 @@ export abstract class AbstractCommand<
         cause: error,
       });
     }
+  }
+
+  getOutputReportId(device: HIDDevice): number {
+    const infos = device.collections;
+    if (infos) {
+      for (const info of infos) {
+        const outputReports = info.outputReports;
+        if (outputReports && outputReports.length) {
+          const reportId = outputReports[0].reportId;
+          if (reportId) {
+            return reportId;
+          }
+        }
+      }
+    }
+    console.warn(
+      "The device doesn't return an output report ID value. Use the default value: 0x00"
+    );
+    return 0x00; // Return the default value in Remap.
   }
 
   async handleInputReport(data: any): Promise<void> {
