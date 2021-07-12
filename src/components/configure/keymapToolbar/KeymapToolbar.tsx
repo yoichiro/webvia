@@ -264,6 +264,7 @@ export default class KeymapMenu extends React.Component<
                   this.onCloseLayoutOptionPopover();
                 }}
                 position={this.state.layoutOptionPopoverPosition}
+                hidSupport={true}
               />
             </div>
           )}

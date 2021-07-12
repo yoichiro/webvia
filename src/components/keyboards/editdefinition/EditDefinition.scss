@@ -26,60 +26,8 @@
   padding-bottom: 16px;
 }
 
-.edit-definition-form-container {
-  display: flex;
-  flex-direction: row;
-}
-
-.edit-definition-upload-form {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  flex: none;
-  width: 400px;
-  height: 100%;
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.edit-definition-upload-msg {
-  font-weight: bold;
-  font-size: 140%;
-}
-
 .edit-definition-alert {
   margin: 0 32px 32px 32px;
-}
-
-.edit-definition-form {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding: 0 32px 0 32px;
-
-  &-row {
-    margin-bottom: 16px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  &-buttons {
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
-
-    button {
-      margin-left: $space-s;
-    }
-  }
-
-  &-notice {
-    font-size: 80%;
-    color: $color-gray;
-    margin-top: $space-m;
-  }
 }
 
 .edit-keyboard-header {
@@ -87,4 +35,8 @@
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+}
+
+.edit-keyboard-tabs {
+  margin-bottom: 16px;
 }

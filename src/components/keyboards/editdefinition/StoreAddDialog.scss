@@ -1,0 +1,19 @@
+.store-add-dialog {
+  &-close-dialog {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    cursor: pointer;
+  }
+
+  &-content {
+    width: 540px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &-field {
+    margin-bottom: 16px;
+    width: 100%;
+  }
+}

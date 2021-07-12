@@ -1,6 +1,7 @@
 import { connect } from 'react-redux';
 import {
   IFirmwareCodePlace,
+  IKeyboardsPhase,
   KeyboardsPhase,
   RootState,
 } from '../../../store/state';
@@ -31,6 +32,7 @@ const mapStateToProps = (state: RootState) => {
       state.keyboards.editdefinition.otherPlacePublisherEvidence,
     qmkRepositoryFirstPullRequestUrl:
       state.keyboards.editdefinition.qmkRepositoryFirstPullRequestUrl,
+    phase: state.keyboards.app.phase,
   };
 };
 export type EditKeyboardStateType = ReturnType<typeof mapStateToProps>;
@@ -133,6 +135,9 @@ const mapDispatchToProps = (_dispatch: any) => {
           qmkRepositoryFirstPullRequest
         )
       );
+    },
+    updatePhase: (phase: IKeyboardsPhase) => {
+      _dispatch(KeyboardsAppActions.updatePhase(phase));
     },
   };
 };

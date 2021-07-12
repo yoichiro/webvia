@@ -26,7 +26,9 @@ const mapDispatchToProps = (_dispatch: any) => {
     },
     updateKeyboard: (definitionId: string) => {
       _dispatch(KeyboardsAppActions.updatePhase(KeyboardsPhase.processing));
-      _dispatch(storageActionsThunk.fetchKeyboardDefinitionById(definitionId));
+      _dispatch(
+        storageActionsThunk.fetchKeyboardDefinitionById(definitionId, 'edit')
+      );
     },
     startInitializing: () => {
       _dispatch(KeyboardsAppActions.updatePhase(KeyboardsPhase.init));

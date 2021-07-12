@@ -22,13 +22,14 @@ import KeymapSaveDialog from './KeymapSaveDialog.container';
 import {
   AbstractKeymapData,
   AppliedKeymapData,
+  IKeyboardDefinitionDocument,
   SavedKeymapData,
 } from '../../../services/storage/Storage';
 import { IKeymap } from '../../../services/hid/Hid';
 import { KeycodeList } from '../../../services/hid/KeycodeList';
-import AuthProviderDialog from '../auth/AuthProviderDialog.container';
+import AuthProviderDialog from '../../common/auth/AuthProviderDialog.container';
 import { sendEventToGoogleAnalytics } from '../../../utils/GoogleAnalytics';
-import { SupervisorAccount } from '@material-ui/icons';
+import { Link, SupervisorAccount } from '@material-ui/icons';
 
 type PopoverPosition = {
   left: number;
@@ -172,6 +173,7 @@ export default class KeymapListPopover extends React.Component<
                 savedKeymaps={this.props.savedKeymaps!}
                 sharedKeymaps={this.props.sharedKeymaps!}
                 appliedKeymaps={this.props.appliedKeymaps!}
+                definitionDocument={this.props.definitionDocument || null}
                 onClickOpenKeymapSaveDialog={this.onClickOpenKeymapSaveDialog.bind(
                   this
                 )}
@@ -215,6 +217,7 @@ type KeymapListProps = {
   ) => void;
   // eslint-disable-next-line no-unused-vars
   onClickApplySavedKeymapData: (savedKeymapData: AbstractKeymapData) => void;
+  definitionDocument: IKeyboardDefinitionDocument | null;
 };
 
 function KeymapList(props: KeymapListProps) {
@@ -258,11 +261,13 @@ function KeymapList(props: KeymapListProps) {
             savedKeymaps={props.savedKeymaps}
             onClickOpenKeymapSaveDialog={props.onClickOpenKeymapSaveDialog}
             onClickApplySavedKeymapData={props.onClickApplySavedKeymapData}
+            definitionDocument={props.definitionDocument}
           />
         ) : activeTabIndex === 1 ? (
           <SharedKeymapList
             sharedKeymaps={props.sharedKeymaps}
             onClickApplySavedKeymapData={props.onClickApplySavedKeymapData}
+            definitionDocument={props.definitionDocument}
           />
         ) : (
           <SharedKeymapList
@@ -279,6 +284,7 @@ type ISharedKeymapListProps = {
   sharedKeymaps: AbstractKeymapData[];
   // eslint-disable-next-line no-unused-vars
   onClickApplySavedKeymapData: (savedKeymapData: AbstractKeymapData) => void;
+  definitionDocument?: IKeyboardDefinitionDocument | null;
 };
 function SharedKeymapList(props: ISharedKeymapListProps) {
   return (
@@ -314,6 +320,21 @@ function SharedKeymapList(props: ISharedKeymapListProps) {
                 }
                 secondary={item.desc}
               />
+              {props.definitionDocument ? (
+                <ListItemSecondaryAction>
+                  <IconButton
+                    edge="end"
+                    aria-label="link"
+                    href={`/catalog/${props.definitionDocument!.id}/keymap?id=${
+                      item.id
+                    }`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Link />
+                  </IconButton>
+                </ListItemSecondaryAction>
+              ) : null}
             </ListItem>
           );
         })}
@@ -333,6 +354,7 @@ type IMyKeymapListProps = {
   ) => void;
   // eslint-disable-next-line no-unused-vars
   onClickApplySavedKeymapData: (savedKeymapData: SavedKeymapData) => void;
+  definitionDocument: IKeyboardDefinitionDocument | null;
 };
 function MyKeymapList(props: IMyKeymapListProps) {
   return (
@@ -378,6 +400,19 @@ function MyKeymapList(props: IMyKeymapListProps) {
                 >
                   <EditRoundedIcon />
                 </IconButton>
+                {props.definitionDocument && item.status === 'shared' ? (
+                  <IconButton
+                    edge="end"
+                    aria-label="link"
+                    href={`/catalog/${props.definitionDocument!.id}/keymap?id=${
+                      item.id
+                    }`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Link />
+                  </IconButton>
+                ) : null}
               </ListItemSecondaryAction>
             </ListItem>
           );

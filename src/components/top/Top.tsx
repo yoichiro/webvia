@@ -61,6 +61,10 @@ class Top extends React.Component<RouteComponentProps, any> {
     this.props.history.push('/keyboards');
   };
 
+  onClickKeyboardCatalog = () => {
+    this.props.history.push('/catalog');
+  };
+
   render() {
     return (
       <React.Fragment>
@@ -109,6 +113,17 @@ class Top extends React.Component<RouteComponentProps, any> {
                       onClick={this.onClickManageKeyboardDefinitions}
                     >
                       Register/Manage Keyboard Definitions
+                    </Button>
+                  </Grid>
+                </Grid>
+                <Grid container spacing={2} justify="center">
+                  <Grid item>
+                    <Button
+                      variant="text"
+                      color="primary"
+                      onClick={this.onClickKeyboardCatalog}
+                    >
+                      Keyboard Catalog
                     </Button>
                   </Grid>
                 </Grid>

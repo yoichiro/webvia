@@ -1,0 +1,103 @@
+@import '../../../variables';
+
+.catalog-search-wrapper {
+  position: fixed;
+  width: 100%;
+  max-width: 960px;
+  margin-top: calc(var(--key-height));
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.catalog-search-container {
+  width: 100%;
+  height: calc(100vh - var(--key-height) - 26px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.catalog-search-condition-container {
+  display: flex;
+  flex-direction: column;
+  margin: 16px;
+}
+
+.catalog-search-condition {
+  margin-bottom: 16px;
+}
+
+.catalog-search-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+
+  & button {
+    margin-left: 16px;
+  }
+}
+
+.catalog-search-result-container {
+  display: flex;
+  flex-direction: column;
+  margin: 16px;
+}
+
+.catalog-search-result-pagination {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.catalog-search-result-card {
+  margin-bottom: 16px;
+  cursor: pointer;
+  min-height: 100px;
+  display: flex;
+  flex-direction: row;
+
+  &-container {
+    display: flex;
+    flex-direction: row;
+  }
+
+  &-image {
+    width: 200px;
+    height: 150px;
+  }
+
+  &-content {
+    width: 100%;
+  }
+
+  &-header {
+    display: flex;
+    flex-direction: row;
+
+    &-name-container {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  &-name {
+    margin: 0;
+    font-size: 2rem;
+  }
+
+  &-chip-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 16px;
+
+    & .MuiChip-root {
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+  }
+}

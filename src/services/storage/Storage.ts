@@ -1,5 +1,5 @@
 import { LayoutOption } from '../../components/configure/keymap/Keymap';
-import { IFirmwareCodePlace } from '../../store/state';
+import { IFirmwareCodePlace, IKeyboardFeatures } from '../../store/state';
 import { IDeviceInformation } from '../hid/Hid';
 import { KeyboardLabelLang } from '../labellang/KeyLabelLangs';
 
@@ -23,6 +23,11 @@ export const KeyboardDefinitionStatus: {
   approved: 'approved',
 };
 
+export interface IStore {
+  name: string;
+  url: string;
+}
+
 export interface IKeyboardDefinitionDocument {
   readonly id: string;
   readonly authorUid: string;
@@ -42,8 +47,33 @@ export interface IKeyboardDefinitionDocument {
   readonly otherPlaceHowToGet: string;
   readonly otherPlaceSourceCodeEvidence: string;
   readonly otherPlacePublisherEvidence: string;
+  readonly features: IKeyboardFeatures[];
+  readonly thumbnailImageUrl: string;
+  readonly imageUrl: string;
+  readonly description: string;
+  readonly stores: IStore[];
+  readonly websiteUrl: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+}
+
+export function getGitHubUserDisplayName(
+  definitionDocument: IKeyboardDefinitionDocument
+): string {
+  return (
+    definitionDocument.githubDisplayName ||
+    definitionDocument.githubUrl.substring(
+      definitionDocument.githubUrl.lastIndexOf('/') + 1
+    )
+  );
+}
+
+export function getGitHubUserName(
+  definitionDocument: IKeyboardDefinitionDocument
+): string {
+  return definitionDocument.githubUrl.substring(
+    definitionDocument.githubUrl.lastIndexOf('/') + 1
+  );
 }
 
 export function isApprovedKeyboard(
@@ -117,6 +147,10 @@ export interface IAppliedKeymapsResult extends IResult {
   appliedKeymaps: AppliedKeymapData[];
 }
 
+export interface IFetchSharedKeymapResult extends IResult {
+  sharedKeymap?: SavedKeymapData;
+}
+
 /* eslint-disable no-unused-vars */
 export interface IStorage {
   fetchKeyboardDefinitionDocumentByDeviceInfo(
@@ -174,10 +208,34 @@ export interface IStorage {
   createSavedKeymap(keymapData: SavedKeymapData): Promise<IResult>;
   updateSavedKeymap(keymapData: SavedKeymapData): Promise<IResult>;
   deleteSavedKeymap(savedKeymapId: string): Promise<IResult>;
-  fetchSharedKeymaps(info: IDeviceInformation): Promise<ISavedKeymapResult>;
+  fetchSharedKeymaps(
+    info: IDeviceInformation,
+    withoutMine: boolean
+  ): Promise<ISavedKeymapResult>;
   createOrUpdateAppliedKeymap(keymapData: AbstractKeymapData): Promise<IResult>;
   fetchMyAppliedKeymaps(
     info: IDeviceInformation
   ): Promise<IAppliedKeymapsResult>;
+  fetchSharedKeymap(keymapId: string): Promise<IFetchSharedKeymapResult>;
+
+  searchKeyboardsByFeatures(
+    features: IKeyboardFeatures[]
+  ): Promise<IFetchMyKeyboardDefinitionDocumentsResult>;
+  fetchKeyboardDefinitionDocumentById(
+    definitionId: string
+  ): Promise<IFetchKeyboardDefinitionDocumentResult>;
+  updateKeyboardDefinitionDocumentForCatalog(
+    definitionId: string,
+    features: IKeyboardFeatures[],
+    description: string,
+    stores: IStore[],
+    websiteUrl: string
+  ): Promise<IResult>;
+
+  uploadKeyboardCatalogImage(
+    definitionId: string,
+    file: File,
+    progress: (uploadedRate: number) => void
+  ): Promise<IResult>;
 }
 /* eslint-enable no-unused-vars */

@@ -7,6 +7,7 @@ import Configure from './components/configure/Configure.container';
 import Hid from './services/hid/ui/Hid';
 import Top from './components/top/Top';
 import KeyboardDefinitionManagement from './components/keyboards/KeyboardDefinitionManagement.container';
+import Catalog from './components/catalog/Catalog.container';
 
 class App extends React.Component<StyledComponentProps, {}> {
   constructor(
@@ -45,6 +46,15 @@ class App extends React.Component<StyledComponentProps, {}> {
               path="/keyboards/:definitionId"
               component={KeyboardDefinitionManagement}
             />
+            <Route exact path="/catalog">
+              <Catalog />
+            </Route>
+            <Route path="/catalog/:definitionId/keymap">
+              <Catalog catalogDetailMode="keymap" />
+            </Route>
+            <Route path="/catalog/:definitionId">
+              <Catalog catalogDetailMode="introduction" />
+            </Route>
             <Route component={Top} />
           </Switch>
         </BrowserRouter>

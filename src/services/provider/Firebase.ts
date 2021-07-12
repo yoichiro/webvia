@@ -2,6 +2,7 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 import 'firebase/auth';
 import 'firebase/analytics';
+import 'firebase/storage';
 import {
   ICreateKeyboardDefinitionDocumentResult,
   IFetchKeyboardDefinitionDocumentResult,
@@ -16,9 +17,11 @@ import {
   AppliedKeymapData,
   IAppliedKeymapsResult,
   isAppliedKeymapDataInstance,
+  IStore,
+  IFetchSharedKeymapResult,
 } from '../storage/Storage';
 import { IAuth, IAuthenticationResult } from '../auth/Auth';
-import { IFirmwareCodePlace } from '../../store/state';
+import { IFirmwareCodePlace, IKeyboardFeatures } from '../../store/state';
 import { IDeviceInformation } from '../hid/Hid';
 
 const config = {
@@ -34,6 +37,7 @@ const config = {
 export class FirebaseProvider implements IStorage, IAuth {
   private db: firebase.firestore.Firestore;
   private auth: firebase.auth.Auth;
+  private storage: firebase.storage.Storage;
   private unsubscribeAuthStateChanged?: firebase.Unsubscribe;
 
   constructor() {
@@ -42,6 +46,7 @@ export class FirebaseProvider implements IStorage, IAuth {
     const app = firebase.app();
     this.db = app.firestore();
     this.auth = app.auth();
+    this.storage = app.storage();
   }
 
   private createResult(
@@ -80,6 +85,12 @@ export class FirebaseProvider implements IStorage, IAuth {
         .other_place_source_code_evidence,
       otherPlacePublisherEvidence: documentSnapshot.data()!
         .other_place_publisher_evidence,
+      features: documentSnapshot.data()!.features || [],
+      thumbnailImageUrl: documentSnapshot.data()!.thumbnail_image_url,
+      imageUrl: documentSnapshot.data()!.image_url,
+      description: documentSnapshot.data()!.description || '',
+      stores: documentSnapshot.data()!.stores || [],
+      websiteUrl: documentSnapshot.data()!.website_url || '',
       createdAt: documentSnapshot.data()!.created_at.toDate(),
       updatedAt: documentSnapshot.data()!.updated_at.toDate(),
     };
@@ -266,6 +277,40 @@ export class FirebaseProvider implements IStorage, IAuth {
       return {
         success: false,
         error: 'Updating the Keyboard Definition failed.',
+        cause: error,
+      };
+    }
+  }
+
+  async updateKeyboardDefinitionDocumentForCatalog(
+    definitionId: string,
+    features: IKeyboardFeatures[],
+    description: string,
+    stores: IStore[],
+    websiteUrl: string
+  ): Promise<IResult> {
+    try {
+      const now = new Date();
+      await this.db
+        .collection('keyboards')
+        .doc('v2')
+        .collection('definitions')
+        .doc(definitionId)
+        .update({
+          updated_at: now,
+          features,
+          description,
+          stores,
+          website_url: websiteUrl,
+        });
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error(error);
+      return {
+        success: false,
+        error: 'Updating the Keyboard Definition for Catalog failed.',
         cause: error,
       };
     }
@@ -534,7 +579,8 @@ export class FirebaseProvider implements IStorage, IAuth {
   }
 
   async fetchSharedKeymaps(
-    info: IDeviceInformation
+    info: IDeviceInformation,
+    withoutMine: boolean
   ): Promise<ISavedKeymapResult> {
     const snapshot = await this.db
       .collection('keymaps')
@@ -545,10 +591,15 @@ export class FirebaseProvider implements IStorage, IAuth {
       .where('product_id', '==', info.productId)
       .orderBy('created_at', 'desc')
       .get();
-    const keymaps: SavedKeymapData[] = this.filterKeymapsByProductName<SavedKeymapData>(
+    let keymaps: SavedKeymapData[] = this.filterKeymapsByProductName<SavedKeymapData>(
       snapshot,
       info
-    ).filter((keymap) => keymap.author_uid !== this.auth.currentUser!.uid);
+    );
+    if (withoutMine) {
+      keymaps = keymaps.filter(
+        (keymap) => keymap.author_uid !== this.auth.currentUser!.uid
+      );
+    }
     return {
       success: true,
       savedKeymaps: keymaps,
@@ -757,5 +808,157 @@ export class FirebaseProvider implements IStorage, IAuth {
       success: true,
       appliedKeymaps: keymaps,
     };
+  }
+
+  async fetchSharedKeymap(keymapId: string): Promise<IFetchSharedKeymapResult> {
+    try {
+      const keymapSnapshot = await this.db
+        .collection('keymaps')
+        .doc('v1')
+        .collection('saved-keymaps')
+        .doc(keymapId)
+        .get();
+      if (keymapSnapshot.exists) {
+        const data: SavedKeymapData = {
+          id: keymapSnapshot.id,
+          ...(keymapSnapshot.data() as SavedKeymapData),
+        };
+        return {
+          success: true,
+          sharedKeymap: data,
+        };
+      } else {
+        return {
+          success: false,
+          error: `Shared keymap data [${keymapId}] not found.`,
+        };
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        success: false,
+        error: `Fetching shared keymap [${keymapId}] failed.`,
+        cause: error,
+      };
+    }
+  }
+
+  async searchKeyboardsByFeatures(
+    features: IKeyboardFeatures[]
+  ): Promise<IFetchMyKeyboardDefinitionDocumentsResult> {
+    try {
+      let querySnapshot;
+      if (features.length === 0) {
+        querySnapshot = await this.db
+          .collection('keyboards')
+          .doc('v2')
+          .collection('definitions')
+          .where('status', '==', 'approved')
+          .get();
+      } else {
+        querySnapshot = await this.db
+          .collection('keyboards')
+          .doc('v2')
+          .collection('definitions')
+          .where('features', 'array-contains-any', features)
+          .where('status', '==', 'approved')
+          .get();
+      }
+      return {
+        success: true,
+        documents: querySnapshot.docs.map((queryDocumentSnapshot) =>
+          this.generateKeyboardDefinitionDocument(queryDocumentSnapshot)
+        ),
+      };
+    } catch (error) {
+      console.error(error);
+      return {
+        success: false,
+        error:
+          'Searching the keyboard definition document with features failed',
+        cause: error,
+      };
+    }
+  }
+
+  async fetchKeyboardDefinitionDocumentById(
+    definitionId: string
+  ): Promise<IFetchKeyboardDefinitionDocumentResult> {
+    try {
+      const documentSnapshot = await this.db
+        .collection('keyboards')
+        .doc('v2')
+        .collection('definitions')
+        .doc(definitionId)
+        .get();
+      if (documentSnapshot.exists) {
+        return {
+          success: true,
+          exists: true,
+          document: this.generateKeyboardDefinitionDocument(documentSnapshot),
+        };
+      } else {
+        return {
+          success: false,
+          exists: false,
+          error: `The keyboard definition [${definitionId}] not found`,
+        };
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        success: false,
+        error: 'Fetching the keyboard definition document failed',
+        cause: error,
+      };
+    }
+  }
+
+  async uploadKeyboardCatalogImage(
+    definitionId: string,
+    file: File,
+    // eslint-disable-next-line no-unused-vars
+    progress: (uploadedRate: number) => void
+  ): Promise<IResult> {
+    // eslint-disable-next-line no-unused-vars
+    return new Promise<IResult>((resolve, reject) => {
+      const uploadTask = this.storage.ref(`/catalog/${definitionId}`).put(file);
+      uploadTask.on(
+        firebase.storage.TaskEvent.STATE_CHANGED,
+        (snapshot) => {
+          const rate = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          progress(rate);
+        },
+        (error) => {
+          console.error(error);
+          resolve({
+            success: false,
+            error: 'Uploading keyboard catalog image failed.',
+            cause: error,
+          });
+        },
+        async () => {
+          const thumbnailImageUrl = await this.storage
+            .ref(`/catalog/resized/${definitionId}_200x150`)
+            .getDownloadURL();
+          const imageUrl = await this.storage
+            .ref(`/catalog/resized/${definitionId}_400x300`)
+            .getDownloadURL();
+          await this.db
+            .collection('keyboards')
+            .doc('v2')
+            .collection('definitions')
+            .doc(definitionId)
+            .update({
+              thumbnail_image_url: thumbnailImageUrl,
+              image_url: imageUrl,
+              updated_at: new Date(),
+            });
+          resolve({
+            success: true,
+          });
+        }
+      );
+    });
   }
 }

@@ -48,6 +48,7 @@ function Contents(props: ContentsProps) {
     case KeyboardsPhase.create:
       return <CreateKeyboard />;
     case KeyboardsPhase.edit:
+    case KeyboardsPhase.catalog:
       return <EditKeyboard />;
     default:
       throw new Error(

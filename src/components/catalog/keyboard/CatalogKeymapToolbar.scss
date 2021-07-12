@@ -1,0 +1,16 @@
+@import '../../../variables';
+
+.catalog-keymap-toolbar {
+  &-menu {
+    display: flex;
+    width: 80px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 8px 16px;
+
+    &-item {
+      margin-bottom: $space-m;
+    }
+  }
+}

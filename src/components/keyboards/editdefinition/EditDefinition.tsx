@@ -14,33 +14,31 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  FormControl,
   IconButton,
-  InputLabel,
   Menu,
   MenuItem,
-  Select,
   Step,
   StepLabel,
   Stepper,
-  TextField,
+  Tab,
+  Tabs,
 } from '@material-ui/core';
 import {
+  IKeyboardDefinitionDocument,
   IKeyboardDefinitionStatus,
   KeyboardDefinitionStatus,
 } from '../../../services/storage/Storage';
-import { KeyboardDefinitionFormPart } from '../../common/keyboarddefformpart/KeyboardDefinitionFormPart';
 import { KeyboardDefinitionSchema } from '../../../gen/types/KeyboardDefinition';
 import { Alert } from '@material-ui/lab';
 import moment from 'moment-timezone';
 import { MoreVert } from '@material-ui/icons';
-import { AgreementCheckbox } from '../agreement/AgreementCheckbox';
-import { FirmwareCodePlace, IFirmwareCodePlace } from '../../../store/state';
 import {
   isForkedQmkFirmwareCode,
   isOtherFirmwareCode,
   isQmkFirmwareCode,
 } from '../ValidationUtils';
+import DefinitionForm from './DefinitionForm';
+import CatalogForm from './CatalogForm.container';
 
 type ConfirmDialogMode =
   | 'save_as_draft'
@@ -220,528 +218,13 @@ export default class EditDefinition extends React.Component<
     return this.props.definitionDocument!.status === status;
   }
 
-  renderJsonUploadForm() {
-    if (this.isStatus(KeyboardDefinitionStatus.in_review)) {
-      return null;
-    } else if (this.isStatus(KeyboardDefinitionStatus.approved)) {
-      return (
-        <div className="edit-definition-upload-form">
-          <KeyboardDefinitionFormPart
-            messageHtml={`<span class="edit-definition-upload-msg">Please import your file (.json)</b>`}
-            validateDeviceIds={true}
-            deviceVendorId={this.props.definitionDocument!.vendorId}
-            deviceProductId={this.props.definitionDocument!.productId}
-            size="small"
-            onLoadFile={(kd, name, jsonStr) => {
-              this.onLoadFile(kd, name, jsonStr);
-            }}
-          />
-        </div>
-      );
+  onChangeTab(event: any, tabIndex: number) {
+    if (tabIndex === 0) {
+      this.props.updatePhase!('edit');
+    } else if (tabIndex === 1) {
+      this.props.updatePhase!('catalog');
     } else {
-      return (
-        <div className="edit-definition-upload-form">
-          <KeyboardDefinitionFormPart
-            messageHtml={`<span class="edit-definition-upload-msg">Please import your file (.json)</b>`}
-            validateDeviceIds={false}
-            size="small"
-            onLoadFile={(kd, name, jsonStr) => {
-              this.onLoadFile(kd, name, jsonStr);
-            }}
-          />
-        </div>
-      );
-    }
-  }
-
-  renderJsonFilenameRow() {
-    if (this.isStatus(KeyboardDefinitionStatus.in_review)) {
-      return null;
-    } else {
-      return (
-        <div className="edit-definition-form-row">
-          <TextField
-            id="edit-definition-json-filename"
-            label="JSON Filename"
-            variant="outlined"
-            value={this.props.jsonFilename}
-            InputProps={{
-              readOnly: true,
-            }}
-          />
-        </div>
-      );
-    }
-  }
-
-  renderAgreementRow() {
-    if (
-      this.isStatus(KeyboardDefinitionStatus.draft) ||
-      this.isStatus(KeyboardDefinitionStatus.rejected)
-    ) {
-      return (
-        <div className="edit-definition-form-row">
-          <AgreementCheckbox
-            agreement={this.props.agreement!}
-            updateAgreement={this.props.updateAgreement!}
-          />
-        </div>
-      );
-    } else {
-      return null;
-    }
-  }
-
-  renderProductNameRow() {
-    if (
-      this.isStatus(KeyboardDefinitionStatus.in_review) ||
-      this.isStatus(KeyboardDefinitionStatus.approved)
-    ) {
-      return (
-        <div className="edit-definition-form-row">
-          <TextField
-            id="edit-definition-product-name"
-            label="Product Name"
-            helperText="This is a Product Name specified by `#define PRODUCT [Product Name]` in the config.h file."
-            variant="outlined"
-            value={this.props.productName}
-            InputProps={{
-              readOnly: true,
-            }}
-          />
-        </div>
-      );
-    } else {
-      return (
-        <div className="edit-definition-form-row">
-          <TextField
-            inputRef={this.refInputProductName}
-            id="edit-definition-product-name"
-            label="Product Name"
-            helperText="This is a Product Name specified by `#define PRODUCT [Product Name]` in the config.h file."
-            variant="outlined"
-            required={true}
-            value={this.props.productName}
-            onChange={(event) =>
-              this.props.updateProductName!(event.target.value)
-            }
-            onFocus={(event) => {
-              event.target.select();
-            }}
-          />
-        </div>
-      );
-    }
-  }
-
-  renderSaveAsDraftButton() {
-    if (
-      this.isStatus(KeyboardDefinitionStatus.draft) ||
-      this.isStatus(KeyboardDefinitionStatus.rejected)
-    ) {
-      return (
-        <Button
-          color="primary"
-          style={{ marginRight: '16px' }}
-          onClick={this.handleSaveAsDraftButtonClick}
-          disabled={!this.isFilledInAllField()}
-        >
-          Save as Draft
-        </Button>
-      );
-    } else {
-      return null;
-    }
-  }
-
-  renderSubmitForReviewButton() {
-    if (
-      this.isStatus(KeyboardDefinitionStatus.draft) ||
-      this.isStatus(KeyboardDefinitionStatus.rejected)
-    ) {
-      return (
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={this.handleSubmitForReviewButtonClick}
-          disabled={!this.isFilledInAllFieldAndAgreed()}
-        >
-          Submit for Review
-        </Button>
-      );
-    } else {
-      return null;
-    }
-  }
-
-  renderUpdateJsonButton() {
-    if (this.isStatus(KeyboardDefinitionStatus.approved)) {
-      return (
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={this.handleUpdateJsonFileButtonClick}
-          disabled={!this.isFilledInAllField()}
-        >
-          Update JSON file
-        </Button>
-      );
-    } else {
-      return null;
-    }
-  }
-
-  renderAlertMessage() {
-    const updatedAt = moment(this.props.definitionDocument!.updatedAt).format(
-      'YYYY-MM-DD HH:mm:ss'
-    );
-    if (this.isStatus(KeyboardDefinitionStatus.in_review)) {
-      return (
-        <div className="edit-definition-alert">
-          <Alert severity="info">
-            Thank you for registering your keyboard! We have received your
-            request at {updatedAt}.
-          </Alert>
-        </div>
-      );
-    } else if (this.isStatus(KeyboardDefinitionStatus.rejected)) {
-      const googleFormUrl = GOOGLE_FORM_URL.replace(
-        '${keyboard_name}',
-        this.props.definitionDocument!.name
-      ).replace('${keyboard_id}', this.props.definitionDocument!.id);
-      return (
-        <div className="edit-definition-alert">
-          <Alert severity="error">
-            Your request was rejected at {updatedAt}. Reason:{' '}
-            {this.props.definitionDocument!.rejectReason}
-            <br />
-            If the review request submitted by you was rejected by the reason
-            that the same keyboard definition has already been registered by the
-            incorrect applicant, please report it from{' '}
-            <a href={googleFormUrl} target="_blank" rel="noreferrer">
-              this form
-            </a>
-            .
-          </Alert>
-        </div>
-      );
-    } else {
-      return null;
-    }
-  }
-
-  renderMenu() {
-    const menuItems = [];
-    if (this.props.keyboardDefinition) {
-      menuItems.push(
-        <MenuItem
-          key="1"
-          onClick={this.handleDownloadJsonMenuClick}
-          button={true}
-        >
-          Download JSON
-        </MenuItem>
-      );
-    }
-    if (!this.isStatus(KeyboardDefinitionStatus.in_review)) {
-      menuItems.push(
-        <MenuItem key="2" onClick={this.handleDeleteMenuClick} button={true}>
-          Delete
-        </MenuItem>
-      );
-    }
-    if (menuItems.length > 0) {
-      const { menuAnchorEl } = this.state;
-      return (
-        <React.Fragment>
-          <IconButton
-            aria-owns={menuAnchorEl ? 'edit-definition-menu' : undefined}
-            onClick={this.handleMenuIconClick}
-          >
-            <MoreVert />
-          </IconButton>
-          <Menu
-            id="edit-definition-menu"
-            anchorEl={menuAnchorEl}
-            open={Boolean(menuAnchorEl)}
-            onClose={this.handleMenuClose}
-          >
-            {menuItems}
-          </Menu>
-        </React.Fragment>
-      );
-    } else {
-      return null;
-    }
-  }
-
-  renderFirmwareCodePlace() {
-    if (
-      this.isStatus(KeyboardDefinitionStatus.draft) ||
-      this.isStatus(KeyboardDefinitionStatus.rejected)
-    ) {
-      return (
-        <div className="edit-definition-form-row">
-          <FormControl>
-            <InputLabel id="edit-definition-firmware-code-place">
-              Where is the source code of this keyboard&apos;s firmware?
-            </InputLabel>
-            <Select
-              labelId="edit-definition-firmware-code-place"
-              value={this.props.firmwareCodePlace}
-              onChange={(e) =>
-                this.props.updateFirmwareCodePlace!(
-                  e.target.value as IFirmwareCodePlace
-                )
-              }
-            >
-              <MenuItem value={FirmwareCodePlace.qmk}>
-                GitHub: qmk/qmk_firmware
-              </MenuItem>
-              <MenuItem value={FirmwareCodePlace.forked}>
-                GitHub: Your forked repository from qmk/qmk_firmware
-              </MenuItem>
-              <MenuItem value={FirmwareCodePlace.other}>Other</MenuItem>
-            </Select>
-          </FormControl>
-        </div>
-      );
-    } else {
-      const value =
-        this.props.firmwareCodePlace === FirmwareCodePlace.qmk
-          ? 'GitHub: qmk/qmk_firmware'
-          : this.props.firmwareCodePlace === FirmwareCodePlace.forked
-          ? 'GitHub: Your forked repository from qmk/qmk_firmware'
-          : this.props.firmwareCodePlace === FirmwareCodePlace.other
-          ? 'Other'
-          : 'Unknown';
-      return (
-        <div className="edit-definition-form-row">
-          <TextField
-            id="edit-definition-firmware-code-place"
-            label="Where is the source code of this keyboard's firmware?"
-            variant="outlined"
-            value={value}
-            InputProps={{
-              readOnly: true,
-            }}
-          />
-        </div>
-      );
-    }
-  }
-
-  renderEvidenceForQmkRepository() {
-    if (this.props.firmwareCodePlace === FirmwareCodePlace.qmk) {
-      if (
-        this.isStatus(KeyboardDefinitionStatus.draft) ||
-        this.isStatus(KeyboardDefinitionStatus.rejected)
-      ) {
-        return (
-          <div className="edit-definition-form-row">
-            <TextField
-              id="edit-definition-qmk-repository-pull-request-url"
-              label="1st Pull Request URL"
-              variant="outlined"
-              helperText="Fill in the URL of 1st Pull Request to the QMK Firmware repository which you submitted for this keyboard. This information will be confirmed by reviewers."
-              value={this.props.qmkRepositoryFirstPullRequestUrl || ''}
-              onChange={(e) =>
-                this.props.updateQmkRepositoryFirstPullRequestUrl!(
-                  e.target.value
-                )
-              }
-            />
-          </div>
-        );
-      } else {
-        return (
-          <div className="edit-definition-form-row">
-            <TextField
-              id="edit-definition-qmk-repository-pull-request-url"
-              label="1st Pull Request URL"
-              variant="outlined"
-              value={this.props.qmkRepositoryFirstPullRequestUrl || ''}
-              InputProps={{
-                readOnly: true,
-              }}
-            />
-          </div>
-        );
-      }
-    } else {
-      return null;
-    }
-  }
-
-  renderEvidenceForForkedRepository() {
-    if (this.props.firmwareCodePlace === FirmwareCodePlace.forked) {
-      if (
-        this.isStatus(KeyboardDefinitionStatus.draft) ||
-        this.isStatus(KeyboardDefinitionStatus.rejected)
-      ) {
-        return (
-          <React.Fragment>
-            <div className="edit-definition-form-row">
-              <TextField
-                id="edit-definition-forked-repository-url"
-                label="Forked Repository URL"
-                variant="outlined"
-                value={this.props.forkedRepositoryUrl || ''}
-                onChange={(e) =>
-                  this.props.updateForkedRepositoryUrl!(e.target.value)
-                }
-              />
-            </div>
-            <div className="edit-definition-form-row">
-              <TextField
-                id="edit-definition-forked-repository-evidence"
-                label="Evidence Information"
-                variant="outlined"
-                multiline
-                rows={4}
-                helperText="Fill in the information to evidence whether the forked repository is the original and authentic firmware. This information will be confirmed by reviewers."
-                value={this.props.forkedRepositoryEvidence || ''}
-                onChange={(e) =>
-                  this.props.updateForkedRepositoryEvidence!(e.target.value)
-                }
-              />
-            </div>
-          </React.Fragment>
-        );
-      } else {
-        return (
-          <React.Fragment>
-            <div className="edit-definition-form-row">
-              <TextField
-                id="edit-definition-forked-repository-url"
-                label="Forked Repository URL"
-                variant="outlined"
-                value={this.props.forkedRepositoryUrl || ''}
-                InputProps={{
-                  readOnly: true,
-                }}
-              />
-            </div>
-            <div className="create-definition-form-row">
-              <TextField
-                id="create-definition-forked-repository-evidence"
-                label="Evidence Information"
-                variant="outlined"
-                multiline
-                rows={4}
-                value={this.props.forkedRepositoryEvidence || ''}
-                InputProps={{
-                  readOnly: true,
-                }}
-              />
-            </div>
-          </React.Fragment>
-        );
-      }
-    } else {
-      return null;
-    }
-  }
-
-  renderEvidenceForOtherPlace() {
-    if (this.props.firmwareCodePlace === FirmwareCodePlace.other) {
-      if (
-        this.isStatus(KeyboardDefinitionStatus.draft) ||
-        this.isStatus(KeyboardDefinitionStatus.rejected)
-      ) {
-        return (
-          <React.Fragment>
-            <div className="edit-definition-form-row">
-              <TextField
-                id="edit-definition-other-place-how-to-get"
-                label="How to Get the Source Code"
-                variant="outlined"
-                multiline
-                rows={4}
-                helperText="Fill in how to get the source code of this keyboard's firmware."
-                value={this.props.otherPlaceHowToGet || ''}
-                onChange={(e) =>
-                  this.props.updateOtherPlaceHowToGet!(e.target.value)
-                }
-              />
-            </div>
-            <div className="edit-definition-form-row">
-              <TextField
-                id="edit-definition-other-place-source-code-evidence"
-                label="Evidence Information for Source Code"
-                variant="outlined"
-                multiline
-                rows={4}
-                helperText="Fill in the information to evidence whether the source code is the original and authentic firmware. This information will be confirmed by reviewers."
-                value={this.props.otherPlaceSourceCodeEvidence || ''}
-                onChange={(e) =>
-                  this.props.updateOtherPlaceSourceCodeEvidence!(e.target.value)
-                }
-              />
-            </div>
-            <div className="edit-definition-form-row">
-              <TextField
-                id="edit-definition-other-place-publisher-evidence"
-                label="Evidence Information for Publisher"
-                variant="outlined"
-                multiline
-                rows={4}
-                helperText="Fill in the information to evidence whether you are the publisher of the source code of the keyboard's firmware. This information will be confirmed by reviewers."
-                value={this.props.otherPlacePublisherEvidence || ''}
-                onChange={(e) =>
-                  this.props.updateOtherPlacePublisherEvidence!(e.target.value)
-                }
-              />
-            </div>
-          </React.Fragment>
-        );
-      } else {
-        return (
-          <React.Fragment>
-            <div className="edit-definition-form-row">
-              <TextField
-                id="edit-definition-other-place-how-to-get"
-                label="How to Get the Source Code"
-                variant="outlined"
-                multiline
-                rows={4}
-                value={this.props.otherPlaceHowToGet || ''}
-                InputProps={{
-                  readOnly: true,
-                }}
-              />
-            </div>
-            <div className="edit-definition-form-row">
-              <TextField
-                id="edit-definition-other-place-source-code-evidence"
-                label="Evidence Information for Source Code"
-                variant="outlined"
-                multiline
-                rows={4}
-                value={this.props.otherPlaceSourceCodeEvidence || ''}
-                InputProps={{
-                  readOnly: true,
-                }}
-              />
-            </div>
-            <div className="edit-definition-form-row">
-              <TextField
-                id="edit-definition-other-place-publisher-evidence"
-                label="Evidence Information for Publisher"
-                variant="outlined"
-                multiline
-                rows={4}
-                value={this.props.otherPlacePublisherEvidence || ''}
-                InputProps={{
-                  readOnly: true,
-                }}
-              />
-            </div>
-          </React.Fragment>
-        );
-      }
-    } else {
-      return null;
+      throw new Error(`Invalid tabIndex: ${tabIndex}`);
     }
   }
 
@@ -778,7 +261,17 @@ export default class EditDefinition extends React.Component<
                     >
                       &lt; Keyboard List
                     </Button>
-                    {this.renderMenu()}
+                    <MenuUI
+                      definitionDocument={this.props.definitionDocument!}
+                      keyboardDefinition={this.props.keyboardDefinition}
+                      handleDeleteMenuClick={this.handleDeleteMenuClick}
+                      handleMenuClose={this.handleMenuClose}
+                      handleDownloadJsonMenuClick={
+                        this.handleDownloadJsonMenuClick
+                      }
+                      handleMenuIconClick={this.handleMenuIconClick}
+                      menuAnchorEl={this.state.menuAnchorEl}
+                    />
                   </div>
                   <Stepper activeStep={activeStep}>
                     {statusSteps.map((label) => {
@@ -793,72 +286,87 @@ export default class EditDefinition extends React.Component<
                       );
                     })}
                   </Stepper>
-                  {this.renderAlertMessage()}
-                  <div className="edit-definition-form-container">
-                    {this.renderJsonUploadForm()}
-                    <div className="edit-definition-form">
-                      {this.renderJsonFilenameRow()}
-                      <div className="edit-definition-form-row">
-                        <TextField
-                          id="edit-definition-name"
-                          label="Name"
-                          variant="outlined"
-                          value={this.props.keyboardDefinition?.name || ''}
-                          InputProps={{
-                            readOnly: true,
-                          }}
-                        />
-                      </div>
-                      <div className="edit-definition-form-row">
-                        <TextField
-                          id="edit-definition-vendor_id"
-                          label="Vendor ID"
-                          variant="outlined"
-                          value={this.props.keyboardDefinition?.vendorId || ''}
-                          InputProps={{
-                            readOnly: true,
-                          }}
-                        />
-                      </div>
-                      <div className="edit-definition-form-row">
-                        <TextField
-                          id="edit-definition-product_id"
-                          label="Product ID"
-                          variant="outlined"
-                          value={this.props.keyboardDefinition?.productId || ''}
-                          InputProps={{
-                            readOnly: true,
-                          }}
-                        />
-                      </div>
-                      {this.renderProductNameRow()}
-                      {this.renderFirmwareCodePlace()}
-                      {this.renderEvidenceForQmkRepository()}
-                      {this.renderEvidenceForForkedRepository()}
-                      {this.renderEvidenceForOtherPlace()}
-                      {this.renderAgreementRow()}
-                      <div className="edit-definition-form-buttons">
-                        {this.renderSaveAsDraftButton()}
-                        {this.renderSubmitForReviewButton()}
-                        {this.renderUpdateJsonButton()}
-                      </div>
-                      <div className="edit-definition-form-notice">
-                        <p>
-                          * You can submit the JSON file written by you only. Do
-                          NOT infringe of the right of person who created the
-                          original JSON file. We check whether you are valid
-                          author of the keyboard you request in our review
-                          process, but notice that we can&quot;t insure the
-                          validity completely.
-                        </p>
-                        <p>
-                          * We check whether the keyboard you request has a
-                          unique combination of the Vendor ID, Product ID and
-                          Product Name in our review process.
-                        </p>
-                      </div>
+                  <AlertMessage
+                    definitionDocument={this.props.definitionDocument!}
+                  />
+                  {this.isStatus(KeyboardDefinitionStatus.approved) ? (
+                    <div className="edit-keyboard-tabs">
+                      <Tabs
+                        value={this.props.phase === 'edit' ? 0 : 1}
+                        indicatorColor="primary"
+                        textColor="primary"
+                        onChange={this.onChangeTab.bind(this)}
+                        variant="fullWidth"
+                        centered
+                      >
+                        <Tab label="Definition" />
+                        <Tab label="Catalog" />
+                      </Tabs>
                     </div>
-                  </div>
+                  ) : null}
+                  {this.props.phase === 'edit' ? (
+                    <DefinitionForm
+                      definitionDocument={this.props.definitionDocument}
+                      onLoadFile={this.onLoadFile.bind(this)}
+                      jsonFilename={this.props.jsonFilename}
+                      keyboardDefinition={this.props.keyboardDefinition}
+                      productName={this.props.productName}
+                      refInputProductName={this.refInputProductName}
+                      updateProductName={this.props.updateProductName!}
+                      firmwareCodePlace={this.props.firmwareCodePlace}
+                      updateFirmwareCodePlace={
+                        this.props.updateFirmwareCodePlace!
+                      }
+                      qmkRepositoryFirstPullRequestUrl={
+                        this.props.qmkRepositoryFirstPullRequestUrl
+                      }
+                      updateQmkRepositoryFirstPullRequestUrl={
+                        this.props.updateQmkRepositoryFirstPullRequestUrl!
+                      }
+                      forkedRepositoryUrl={this.props.forkedRepositoryUrl}
+                      updateForkedRepositoryUrl={
+                        this.props.updateForkedRepositoryUrl!
+                      }
+                      forkedRepositoryEvidence={
+                        this.props.forkedRepositoryEvidence
+                      }
+                      updateForkedRepositoryEvidence={
+                        this.props.updateForkedRepositoryEvidence!
+                      }
+                      otherPlaceHowToGet={this.props.otherPlaceHowToGet}
+                      updateOtherPlaceHowToGet={
+                        this.props.updateOtherPlaceHowToGet!
+                      }
+                      otherPlaceSourceCodeEvidence={
+                        this.props.otherPlaceSourceCodeEvidence
+                      }
+                      updateOtherPlaceSourceCodeEvidence={
+                        this.props.updateOtherPlaceSourceCodeEvidence!
+                      }
+                      otherPlacePublisherEvidence={
+                        this.props.otherPlacePublisherEvidence
+                      }
+                      updateOtherPlacePublisherEvidence={
+                        this.props.updateOtherPlacePublisherEvidence!
+                      }
+                      agreement={this.props.agreement}
+                      updateAgreement={this.props.updateAgreement!}
+                      handleSaveAsDraftButtonClick={this.handleSaveAsDraftButtonClick.bind(
+                        this
+                      )}
+                      isFilledInAllField={this.isFilledInAllField.bind(this)}
+                      handleSubmitForReviewButtonClick={this.handleSubmitForReviewButtonClick.bind(
+                        this
+                      )}
+                      isFilledInAllFieldAndAgreed={this.isFilledInAllFieldAndAgreed.bind(
+                        this
+                      )}
+                      handleUpdateJsonFileButtonClick={this.handleUpdateJsonFileButtonClick.bind(
+                        this
+                      )}
+                    />
+                  ) : null}
+                  {this.props.phase === 'catalog' ? <CatalogForm /> : null}
                 </CardContent>
               </Card>
             </div>
@@ -907,5 +415,105 @@ export default class EditDefinition extends React.Component<
         </Dialog>
       </React.Fragment>
     );
+  }
+}
+
+type MenuUIProps = {
+  keyboardDefinition: KeyboardDefinitionSchema | null | undefined;
+  definitionDocument: IKeyboardDefinitionDocument;
+  handleDownloadJsonMenuClick: () => void;
+  handleDeleteMenuClick: () => void;
+  // eslint-disable-next-line no-unused-vars
+  handleMenuIconClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  handleMenuClose: () => void;
+  menuAnchorEl: any;
+};
+
+function MenuUI(props: MenuUIProps) {
+  const menuItems = [];
+  if (props.keyboardDefinition) {
+    menuItems.push(
+      <MenuItem
+        key="1"
+        onClick={props.handleDownloadJsonMenuClick}
+        button={true}
+      >
+        Download JSON
+      </MenuItem>
+    );
+  }
+  if (props.definitionDocument.status !== KeyboardDefinitionStatus.in_review) {
+    menuItems.push(
+      <MenuItem key="2" onClick={props.handleDeleteMenuClick} button={true}>
+        Delete
+      </MenuItem>
+    );
+  }
+  if (menuItems.length > 0) {
+    return (
+      <React.Fragment>
+        <IconButton
+          aria-owns={props.menuAnchorEl ? 'edit-definition-menu' : undefined}
+          onClick={props.handleMenuIconClick}
+        >
+          <MoreVert />
+        </IconButton>
+        <Menu
+          id="edit-definition-menu"
+          anchorEl={props.menuAnchorEl}
+          open={Boolean(props.menuAnchorEl)}
+          onClose={props.handleMenuClose}
+        >
+          {menuItems}
+        </Menu>
+      </React.Fragment>
+    );
+  } else {
+    return null;
+  }
+}
+
+type AlertMessageProps = {
+  definitionDocument: IKeyboardDefinitionDocument;
+};
+
+function AlertMessage(props: AlertMessageProps) {
+  const updatedAt = moment(props.definitionDocument.updatedAt).format(
+    'YYYY-MM-DD HH:mm:ss'
+  );
+  if (props.definitionDocument.status === KeyboardDefinitionStatus.in_review) {
+    return (
+      <div className="edit-definition-alert">
+        <Alert severity="info">
+          Thank you for registering your keyboard! We have received your request
+          at {updatedAt}.
+        </Alert>
+      </div>
+    );
+  } else if (
+    props.definitionDocument.status === KeyboardDefinitionStatus.rejected
+  ) {
+    const googleFormUrl = GOOGLE_FORM_URL.replace(
+      '${keyboard_name}',
+      props.definitionDocument!.name
+    ).replace('${keyboard_id}', props.definitionDocument!.id);
+    return (
+      <div className="edit-definition-alert">
+        <Alert severity="error">
+          Your request was rejected at {updatedAt}. Reason:{' '}
+          {props.definitionDocument!.rejectReason}
+          <br />
+          If the review request submitted by you was rejected by the reason that
+          the same keyboard definition has already been registered by the
+          incorrect applicant, please report it from{' '}
+          <a href={googleFormUrl} target="_blank" rel="noreferrer">
+            this form
+          </a>
+          .
+        </Alert>
+      </div>
+    );
+  } else {
+    return null;
   }
 }

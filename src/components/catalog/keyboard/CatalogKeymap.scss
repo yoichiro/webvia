@@ -1,0 +1,119 @@
+@import '../../../variables';
+
+.catalog-keymap {
+  &-container-wrapper {
+    position: fixed;
+    width: 100%;
+    margin-top: calc(var(--key-height));
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &-container {
+    width: 100%;
+    height: calc(100vh - var(--key-height) - 26px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &-nav {
+    width: 100%;
+    max-width: 960px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+
+  &-tabs {
+    width: 100%;
+    max-width: 960px;
+    margin-bottom: 16px;
+  }
+
+  &-header {
+    width: 100%;
+    max-width: 960px;
+    margin-bottom: 16px;
+
+    &-row {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      align-items: flex-end;
+
+      & h1 {
+        font-size: 28px;
+        font-weight: bold;
+      }
+
+      & h6 {
+        margin-left: 16px;
+      }
+    }
+  }
+
+  &-wrapper {
+    display: flex;
+    flex-direction: row;
+  }
+
+  &-keyboards {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  &-keyboard-root {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-left: 5px solid #ececec;
+    border-right: 5px solid #ececec;
+    border-top: 1px solid #ececec;
+    border-bottom: 8px solid #f3f3f3;
+    border-radius: 8px;
+    background-color: #fcfcfc;
+    -webkit-filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.2));
+    -moz-filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.2));
+    -ms-filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.2));
+    filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.2));
+  }
+
+  &-keyboard-frame {
+    width: 100%;
+    position: relative;
+  }
+
+  &-option {
+    &-container {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      padding-top: $space-l;
+    }
+
+    &-lang {
+      margin-right: 16px;
+    }
+  }
+
+  &-layer {
+    &-wrapper {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      min-width: 88px;
+    }
+
+    &-unselected {
+      border: 0 !important;
+    }
+  }
+}

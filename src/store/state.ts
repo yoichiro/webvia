@@ -7,6 +7,7 @@ import {
   AppliedKeymapData,
   IKeyboardDefinitionDocument,
   IStorage,
+  IStore,
   SavedKeymapData,
 } from '../services/storage/Storage';
 import { IAuth } from '../services/auth/Auth';
@@ -41,6 +42,7 @@ export type IKeyboardsPhase =
   | 'create'
   | 'processing'
   | 'edit'
+  | 'catalog'
   | 'signout';
 export const KeyboardsPhase: { [p: string]: IKeyboardsPhase } = {
   signing: 'signing',
@@ -49,8 +51,19 @@ export const KeyboardsPhase: { [p: string]: IKeyboardsPhase } = {
   create: 'create',
   processing: 'processing',
   edit: 'edit',
+  catalog: 'catalog',
   signout: 'signout',
 };
+
+export const ALL_CATALOG_PHASE = [
+  'init',
+  'processing',
+  'list',
+  'introduction',
+  'keymap',
+] as const;
+type catalogPhaseTuple = typeof ALL_CATALOG_PHASE;
+export type ICatalogPhase = catalogPhaseTuple[number];
 
 export type IFirmwareCodePlace = 'qmk' | 'forked' | 'other';
 export const FirmwareCodePlace: { [p: string]: IFirmwareCodePlace } = {
@@ -58,6 +71,80 @@ export const FirmwareCodePlace: { [p: string]: IFirmwareCodePlace } = {
   forked: 'forked',
   other: 'other',
 };
+
+export const ALL_KEY_COUNT_TYPE = [
+  'over_100',
+  '100',
+  '80',
+  '60',
+  '40',
+  '30',
+  'macro',
+] as const;
+type keyCountTuple = typeof ALL_KEY_COUNT_TYPE;
+export type IKeyboardKeyCountType = keyCountTuple[number];
+
+export const ALL_SPLIT_TYPE = ['split', 'integrated'] as const;
+type splitTuple = typeof ALL_SPLIT_TYPE;
+export type IKeyboardSplitType = splitTuple[number];
+
+export const ALL_STAGGERED_TYPE = [
+  'column_staggered',
+  'row_staggered',
+  'ortholinear',
+  'symmetrical',
+] as const;
+type staggeredTuple = typeof ALL_STAGGERED_TYPE;
+export type IKeyboardStaggeredType = staggeredTuple[number];
+
+export const ALL_LED_TYPE = ['underglow', 'backlight'] as const;
+type ledTuple = typeof ALL_LED_TYPE;
+export type IKeyboardLedType = ledTuple[number];
+
+export const ALL_KEY_SWITCH_TYPE = ['cherry_mx', 'kailh_choc'] as const;
+type keySwitchTuple = typeof ALL_KEY_SWITCH_TYPE;
+export type IKeyboardKeySwitchType = keySwitchTuple[number];
+
+export const ALL_HOTSWAP_TYPE = ['hot_swap'] as const;
+type hotswapTuple = typeof ALL_HOTSWAP_TYPE;
+export type IKeyboardHotswapType = hotswapTuple[number];
+
+export const ALL_MCU_TYPE = [
+  'at90usb1286',
+  'at90usb1287',
+  'at90usb646',
+  'at90usb647',
+  'atmega16u2',
+  'atmega16u4',
+  'atmega328p',
+  'atmega32a',
+  'atmega32u2',
+  'atmega32u4',
+] as const;
+type mcuTuple = typeof ALL_MCU_TYPE;
+export type IKeyboardMcuType = mcuTuple[number];
+
+export const ALL_OLED_TYPE = ['oled'] as const;
+type oledTuple = typeof ALL_OLED_TYPE;
+export type IKeyboardOledType = oledTuple[number];
+
+export const ALL_SPEAKER_TYPE = ['speaker'] as const;
+type speakerTuple = typeof ALL_SPEAKER_TYPE;
+export type IKeyboardSpeakerType = speakerTuple[number];
+
+export type IConditionNotSelected = '---';
+export const CONDITION_NOT_SELECTED: IConditionNotSelected = '---';
+
+export type IKeyboardFeatures =
+  | IKeyboardKeyCountType
+  | IKeyboardSplitType
+  | IKeyboardStaggeredType
+  | IKeyboardLedType
+  | IKeyboardKeySwitchType
+  | IKeyboardHotswapType
+  | IKeyboardMcuType
+  | IKeyboardOledType
+  | IKeyboardSpeakerType;
 
 export type RootState = {
   entities: {
@@ -84,6 +171,7 @@ export type RootState = {
     savedKeymaps: SavedKeymapData[];
     sharedKeymaps: SavedKeymapData[];
     appliedKeymaps: AppliedKeymapData[];
+    searchResultKeyboardDocuments: IKeyboardDefinitionDocument[];
   };
   app: {
     package: {
@@ -162,6 +250,28 @@ export type RootState = {
       otherPlaceHowToGet: string;
       otherPlaceSourceCodeEvidence: string;
       otherPlacePublisherEvidence: string;
+      features: IKeyboardFeatures[];
+      uploadedRate: number;
+      uploading: boolean;
+      description: string;
+      stores: IStore[];
+      websiteUrl: string;
+    };
+  };
+  catalog: {
+    app: {
+      phase: ICatalogPhase;
+    };
+    search: {
+      features: IKeyboardFeatures[];
+      keyword: string;
+    };
+    keyboard: {
+      keymaps: {
+        [pos: string]: IKeymap;
+      }[];
+      selectedLayer: number;
+      langLabel: KeyboardLabelLang;
     };
   };
   hid: {
@@ -215,6 +325,7 @@ export const INIT_STATE: RootState = {
     savedKeymaps: [],
     sharedKeymaps: [],
     appliedKeymaps: [],
+    searchResultKeyboardDocuments: [],
   },
   app: {
     package: {
@@ -290,6 +401,26 @@ export const INIT_STATE: RootState = {
       otherPlaceHowToGet: '',
       otherPlaceSourceCodeEvidence: '',
       otherPlacePublisherEvidence: '',
+      features: [],
+      uploadedRate: 0,
+      uploading: false,
+      description: '',
+      stores: [],
+      websiteUrl: '',
+    },
+  },
+  catalog: {
+    app: {
+      phase: 'list', // FIXME Should be 'init'
+    },
+    search: {
+      features: [],
+      keyword: '',
+    },
+    keyboard: {
+      keymaps: [],
+      selectedLayer: 0,
+      langLabel: 'en-us',
     },
   },
   hid: {

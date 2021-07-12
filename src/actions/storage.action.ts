@@ -1,5 +1,11 @@
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
-import { KeyboardsPhase, RootState, SetupPhase } from '../store/state';
+import {
+  ICatalogPhase,
+  IKeyboardsPhase,
+  KeyboardsPhase,
+  RootState,
+  SetupPhase,
+} from '../store/state';
 import {
   AppActions,
   KeymapActions,
@@ -25,6 +31,8 @@ import {
 import { getGitHubProviderData } from '../services/auth/Auth';
 import { IDeviceInformation } from '../services/hid/Hid';
 import { sendEventToGoogleAnalytics } from '../utils/GoogleAnalytics';
+import { CatalogAppActions } from './catalog.action';
+import * as qs from 'qs';
 
 export const STORAGE_ACTIONS = '@Storage';
 export const STORAGE_UPDATE_KEYBOARD_DEFINITION = `${STORAGE_ACTIONS}/UpdateKeyboardDefinition`;
@@ -33,6 +41,7 @@ export const STORAGE_UPDATE_KEYBOARD_DEFINITION_DOCUMENT = `${STORAGE_ACTIONS}/U
 export const STORAGE_UPDATE_SAVED_KEYMAPS = `${STORAGE_ACTIONS}/UpdateSavedKeymaps`;
 export const STORAGE_UPDATE_SHARED_KEYMAPS = `${STORAGE_ACTIONS}/UpdateSharedKeymaps`;
 export const STORAGE_UPDATE_APPLIED_KEYMAPS = `${STORAGE_ACTIONS}/UpdateAppliedKeymaps`;
+export const STORAGE_UPDATE_SEARCH_RESULT_KEYBOARD_DEFINITION_DOCUMENT = `${STORAGE_ACTIONS}/UpdateSearchResultKeyboardDefinitionDocument`;
 export const StorageActions = {
   updateKeyboardDefinition: (keyboardDefinition: any) => {
     return {
@@ -78,6 +87,14 @@ export const StorageActions = {
     return {
       type: STORAGE_UPDATE_APPLIED_KEYMAPS,
       value: keymaps,
+    };
+  },
+  updateSearchResultKeyboardDefinitionDocument: (
+    definitions: IKeyboardDefinitionDocument[]
+  ) => {
+    return {
+      type: STORAGE_UPDATE_SEARCH_RESULT_KEYBOARD_DEFINITION_DOCUMENT,
+      value: definitions,
     };
   },
 };
@@ -141,7 +158,8 @@ export const storageActionsThunk = {
   },
 
   fetchKeyboardDefinitionById: (
-    definitionId: string
+    definitionId: string,
+    nextPhase: IKeyboardsPhase
   ): ThunkPromiseAction<void> => async (
     dispatch: ThunkDispatch<RootState, undefined, ActionTypes>,
     getState: () => RootState
@@ -161,18 +179,33 @@ export const storageActionsThunk = {
       return;
     }
     if (fetchKeyboardDefinitionResult.exists!) {
+      const definitionDocument = fetchKeyboardDefinitionResult.document!;
       dispatch(
-        StorageActions.updateKeyboardDefinitionDocument(
-          fetchKeyboardDefinitionResult.document!
-        )
+        StorageActions.updateKeyboardDefinitionDocument(definitionDocument)
       );
       dispatch(KeyboardsEditDefinitionActions.clear());
+      dispatch(KeyboardsEditDefinitionActions.init(definitionDocument));
       dispatch(
-        KeyboardsEditDefinitionActions.init(
-          fetchKeyboardDefinitionResult.document!
+        KeyboardsEditDefinitionActions.updateFeatures(
+          definitionDocument.features
         )
       );
-      dispatch(KeyboardsAppActions.updatePhase(KeyboardsPhase.edit));
+      dispatch(
+        KeyboardsEditDefinitionActions.updateDescription(
+          definitionDocument.description
+        )
+      );
+      dispatch(
+        KeyboardsEditDefinitionActions.updateStores(
+          definitionDocument.stores || []
+        )
+      );
+      dispatch(
+        KeyboardsEditDefinitionActions.updateWebsiteUrl(
+          definitionDocument.websiteUrl
+        )
+      );
+      dispatch(KeyboardsAppActions.updatePhase(nextPhase));
     } else {
       dispatch(NotificationActions.addWarn('No such keyboard.'));
       dispatch(KeyboardsAppActions.updatePhase(KeyboardsPhase.list));
@@ -433,7 +466,8 @@ export const storageActionsThunk = {
     if (result.success) {
       dispatch(
         await storageActionsThunk.fetchKeyboardDefinitionById(
-          result.definitionId!
+          result.definitionId!,
+          'edit'
         )
       );
     } else {
@@ -468,7 +502,10 @@ export const storageActionsThunk = {
     );
     if (result.success) {
       dispatch(
-        await storageActionsThunk.fetchKeyboardDefinitionById(definitionDoc!.id)
+        await storageActionsThunk.fetchKeyboardDefinitionById(
+          definitionDoc!.id,
+          'edit'
+        )
       );
     } else {
       console.error(result.cause!);
@@ -503,7 +540,10 @@ export const storageActionsThunk = {
     );
     if (result.success) {
       dispatch(
-        await storageActionsThunk.fetchKeyboardDefinitionById(definitionDoc!.id)
+        await storageActionsThunk.fetchKeyboardDefinitionById(
+          definitionDoc!.id,
+          'edit'
+        )
       );
     } else {
       console.error(result.cause!);
@@ -524,7 +564,10 @@ export const storageActionsThunk = {
     );
     if (result.success) {
       dispatch(
-        await storageActionsThunk.fetchKeyboardDefinitionById(definitionDoc!.id)
+        await storageActionsThunk.fetchKeyboardDefinitionById(
+          definitionDoc!.id,
+          'edit'
+        )
       );
     } else {
       console.error(result.cause!);
@@ -571,7 +614,8 @@ export const storageActionsThunk = {
   },
 
   fetchSharedKeymaps: (
-    info: IDeviceInformation
+    info: IDeviceInformation,
+    withoutMine: boolean
   ): ThunkPromiseAction<void> => async (
     // eslint-disable-next-line no-unused-vars
     dispatch: ThunkDispatch<RootState, undefined, ActionTypes>,
@@ -579,7 +623,10 @@ export const storageActionsThunk = {
     getState: () => RootState
   ) => {
     const { storage } = getState();
-    const resultList = await storage.instance!.fetchSharedKeymaps(info);
+    const resultList = await storage.instance!.fetchSharedKeymaps(
+      info,
+      withoutMine
+    );
 
     if (resultList.success) {
       dispatch(StorageActions.updateSharedKeymaps(resultList.savedKeymaps));
@@ -724,6 +771,199 @@ export const storageActionsThunk = {
       dispatch(
         NotificationActions.addError(resultList.error!, resultList.cause)
       );
+    }
+  },
+
+  searchKeyboardsForCatalog: (): ThunkPromiseAction<void> => async (
+    // eslint-disable-next-line no-unused-vars
+    dispatch: ThunkDispatch<RootState, undefined, ActionTypes>,
+    // eslint-disable-next-line no-unused-vars
+    getState: () => RootState
+  ) => {
+    dispatch(CatalogAppActions.updatePhase('processing'));
+    const { catalog, storage } = getState();
+    const features = catalog.search.features;
+    const keyword = catalog.search.keyword;
+    let result = await storage.instance!.searchKeyboardsByFeatures(features);
+    if (result.success) {
+      const definitionDocs = result.documents!.filter((doc) =>
+        doc.name.toLowerCase().includes(keyword.toLowerCase())
+      );
+      const matchedFeaturesCount = (
+        doc: IKeyboardDefinitionDocument
+      ): number => {
+        return doc.features.reduce<number>((result, feature) => {
+          return features!.includes(feature) ? result + 1 : result;
+        }, 0);
+      };
+      const sortedSearchResult = definitionDocs.slice().sort((a, b) => {
+        const countA = matchedFeaturesCount(a);
+        const countB = matchedFeaturesCount(b);
+        if (countA === countB) {
+          return Math.random() - 0.5;
+        } else {
+          return matchedFeaturesCount(a) - matchedFeaturesCount(b);
+        }
+      });
+      dispatch(
+        StorageActions.updateSearchResultKeyboardDefinitionDocument(
+          sortedSearchResult
+        )
+      );
+    } else {
+      console.error(result.cause!);
+      dispatch(NotificationActions.addError(result.error!, result.cause));
+    }
+    const query: { [p: string]: string | string[] } = {};
+    if (keyword) {
+      query.keyword = keyword;
+    }
+    if (features && features.length > 0) {
+      query.features = features.join(',');
+    }
+    history.replaceState(null, 'Remap', `/catalog?${qs.stringify(query)}`);
+    dispatch(CatalogAppActions.updatePhase('list'));
+  },
+
+  fetchKeyboardDefinitionForCatalogById: (
+    definitionId: string,
+    nextPhase: ICatalogPhase
+  ): ThunkPromiseAction<void> => async (
+    dispatch: ThunkDispatch<RootState, undefined, ActionTypes>,
+    getState: () => RootState
+  ) => {
+    const { storage } = getState();
+    const fetchKeyboardDefinitionResult = await storage.instance!.fetchKeyboardDefinitionDocumentById(
+      definitionId
+    );
+    if (!fetchKeyboardDefinitionResult.success) {
+      console.error(fetchKeyboardDefinitionResult.cause!);
+      dispatch(
+        NotificationActions.addError(
+          fetchKeyboardDefinitionResult.error!,
+          fetchKeyboardDefinitionResult.cause
+        )
+      );
+      dispatch(CatalogAppActions.updatePhase('init'));
+      dispatch(await storageActionsThunk.searchKeyboardsForCatalog());
+      return;
+    }
+    if (fetchKeyboardDefinitionResult.exists!) {
+      const keyboardDefinitionDocument = fetchKeyboardDefinitionResult.document!;
+      dispatch(
+        StorageActions.updateKeyboardDefinitionDocument(
+          keyboardDefinitionDocument
+        )
+      );
+
+      let keyboardDefinition: KeyboardDefinitionSchema;
+      const jsonStr: string = keyboardDefinitionDocument.json;
+      try {
+        keyboardDefinition = JSON.parse(jsonStr);
+      } catch (error) {
+        dispatch(NotificationActions.addError('JSON parse error'));
+        return;
+      }
+      const validateResult = validateKeyboardDefinitionSchema(
+        keyboardDefinition
+      );
+      if (!validateResult.valid) {
+        dispatch(
+          NotificationActions.addError(validateResult.errors![0].message)
+        );
+        return;
+      }
+      dispatch(StorageActions.updateKeyboardDefinition(keyboardDefinition));
+      dispatch(
+        LayoutOptionsActions.initSelectedOptions(
+          keyboardDefinition.layouts.labels
+            ? keyboardDefinition.layouts.labels
+            : []
+        )
+      );
+      dispatch(
+        await storageActionsThunk.fetchSharedKeymaps(
+          keyboardDefinitionDocument,
+          false
+        )
+      );
+
+      dispatch(CatalogAppActions.updatePhase(nextPhase));
+    } else {
+      dispatch(NotificationActions.addWarn('No such keyboard.'));
+      dispatch(CatalogAppActions.updatePhase('init'));
+    }
+  },
+
+  updateKeyboardDefinitionForCatalog: (): ThunkPromiseAction<void> => async (
+    dispatch: ThunkDispatch<RootState, undefined, ActionTypes>,
+    getState: () => RootState
+  ) => {
+    dispatch(KeyboardsAppActions.updatePhase('processing'));
+    const { storage, keyboards, entities } = getState();
+    const definitionDoc = entities.keyboardDefinitionDocument;
+    const features = keyboards.editdefinition.features;
+    const description = keyboards.editdefinition.description;
+    const stores = keyboards.editdefinition.stores;
+    const websiteUrl = keyboards.editdefinition.websiteUrl;
+    const result = await storage.instance!.updateKeyboardDefinitionDocumentForCatalog(
+      definitionDoc!.id,
+      features,
+      description,
+      stores,
+      websiteUrl
+    );
+    if (result.success) {
+      dispatch(
+        NotificationActions.addSuccess(
+          'Updating the keyboard definition succeeded.'
+        )
+      );
+      dispatch(
+        await storageActionsThunk.fetchKeyboardDefinitionById(
+          definitionDoc!.id,
+          'catalog'
+        )
+      );
+    } else {
+      console.error(result.cause!);
+      dispatch(NotificationActions.addError(result.error!, result.cause));
+    }
+  },
+
+  uploadKeyboardCatalogImage: (
+    definitionId: string,
+    file: File
+  ): ThunkPromiseAction<void> => async (
+    dispatch: ThunkDispatch<RootState, undefined, ActionTypes>,
+    getState: () => RootState
+  ) => {
+    dispatch(KeyboardsEditDefinitionActions.updateUploading(true));
+    dispatch(KeyboardsEditDefinitionActions.updateUploadedRate(0));
+    const { storage } = getState();
+    const result = await storage.instance!.uploadKeyboardCatalogImage(
+      definitionId,
+      file,
+      (uploadedRate) =>
+        dispatch(
+          KeyboardsEditDefinitionActions.updateUploadedRate(uploadedRate)
+        )
+    );
+    if (result.success) {
+      dispatch(KeyboardsAppActions.updatePhase('processing'));
+      setTimeout(async () => {
+        dispatch(KeyboardsEditDefinitionActions.updateUploadedRate(0));
+        dispatch(KeyboardsEditDefinitionActions.updateUploading(false));
+        dispatch(
+          await storageActionsThunk.fetchKeyboardDefinitionById(
+            definitionId,
+            'catalog'
+          )
+        );
+      }, 3000);
+    } else {
+      console.error(result.cause!);
+      dispatch(NotificationActions.addError(result.error!, result.cause));
     }
   },
 };

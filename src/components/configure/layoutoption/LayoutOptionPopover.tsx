@@ -16,6 +16,7 @@ type OwnProps = {
   open: boolean;
   position: PopoverPosition | null;
   onClose: () => void;
+  hidSupport: boolean;
 };
 
 type LayoutOptionPopoverProps = OwnProps &
@@ -99,7 +100,11 @@ export default class LayoutOptionPopover extends React.Component<
                     optionLabel={options}
                     selectedOptionChoice={this.getSelectedOptionChoice(index)}
                     onChange={(choice: number) => {
-                      this.props.setLayoutOption!(index, choice);
+                      this.props.setLayoutOption!(
+                        index,
+                        choice,
+                        this.props.hidSupport
+                      );
                     }}
                   />
                 );
@@ -110,7 +115,11 @@ export default class LayoutOptionPopover extends React.Component<
                     optionLabels={options}
                     selectedOptionChoice={this.getSelectedOptionChoice(index)}
                     onChange={(choice: number) => {
-                      this.props.setLayoutOption!(index, choice);
+                      this.props.setLayoutOption!(
+                        index,
+                        choice,
+                        this.props.hidSupport
+                      );
                     }}
                   />
                 );

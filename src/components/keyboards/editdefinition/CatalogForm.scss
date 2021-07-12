@@ -1,0 +1,85 @@
+@import '../../../variables';
+
+.edit-definition-catalog-form-container {
+  display: flex;
+  flex-direction: row;
+}
+
+.edit-definition-catalog-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0 32px 0 32px;
+
+  &-row {
+    margin-bottom: 16px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &-buttons {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+
+    button {
+      margin-left: $space-s;
+    }
+  }
+
+  &-upload-image-form {
+    display: flex;
+    flex-direction: row;
+
+    &-area {
+      width: 200px;
+      height: 150px;
+      border: 1px dashed rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+
+      &-active {
+        border: 2px dashed rgba(0, 0, 0, 0.2);
+        font-weight: bold;
+      }
+    }
+
+    &-progress {
+      width: 200px;
+      height: 150px;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+    }
+
+    &-message {
+      color: $color-gray-500;
+    }
+
+    &-thumbnail {
+      margin-left: 8px;
+      width: 200px;
+      height: 150px;
+      border: 1px solid $color-gray-300;
+    }
+
+    &-image {
+      margin-left: 8px;
+      width: 400px;
+      height: 300px;
+      border: 1px solid $color-gray-300;
+    }
+  }
+
+  &-store-form {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}

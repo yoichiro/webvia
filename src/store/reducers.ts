@@ -63,13 +63,20 @@ import {
   STORAGE_UPDATE_KEYBOARD_DEFINITION_DOCUMENT,
   STORAGE_UPDATE_KEYBOARD_DEFINITION_DOCUMENTS,
   STORAGE_UPDATE_SAVED_KEYMAPS,
+  STORAGE_UPDATE_SEARCH_RESULT_KEYBOARD_DEFINITION_DOCUMENT,
   STORAGE_UPDATE_SHARED_KEYMAPS,
 } from '../actions/storage.action';
 import { AnyKey } from '../components/configure/keycodekey/KeycodeKey';
 import { KeycodeInfo } from '../components/configure/keycodekey/KeycodeKey.container';
 import { Key } from '../components/configure/keycodekey/KeyGen';
 import { IKeyboard, IKeycodeCategory } from '../services/hid/Hid';
-import { FirmwareCodePlace, INIT_STATE, RootState } from './state';
+import {
+  CONDITION_NOT_SELECTED,
+  FirmwareCodePlace,
+  IKeyboardFeatures,
+  INIT_STATE,
+  RootState,
+} from './state';
 import {
   KEYBOARDS_APP_ACTIONS,
   KEYBOARDS_APP_UPDATE_PHASE,
@@ -91,6 +98,9 @@ import {
   KEYBOARDS_EDIT_DEFINITION_CLEAR,
   KEYBOARDS_EDIT_DEFINITION_INIT,
   KEYBOARDS_EDIT_DEFINITION_UPDATE_AGREEMENT,
+  KEYBOARDS_EDIT_DEFINITION_UPDATE_DESCRIPTION,
+  KEYBOARDS_EDIT_DEFINITION_UPDATE_FEATURE,
+  KEYBOARDS_EDIT_DEFINITION_UPDATE_FEATURES,
   KEYBOARDS_EDIT_DEFINITION_UPDATE_FIRMWARE_CODE_PLACE,
   KEYBOARDS_EDIT_DEFINITION_UPDATE_FORKED_REPOSITORY_EVIDENCE,
   KEYBOARDS_EDIT_DEFINITION_UPDATE_FORKED_REPOSITORY_URL,
@@ -102,9 +112,25 @@ import {
   KEYBOARDS_EDIT_DEFINITION_UPDATE_OTHER_PLACE_SOURCE_CODE_EVIDENCE,
   KEYBOARDS_EDIT_DEFINITION_UPDATE_PRODUCT_NAME,
   KEYBOARDS_EDIT_DEFINITION_UPDATE_QMK_REPOSITORY_FIRST_PULL_REQUEST_URL,
+  KEYBOARDS_EDIT_DEFINITION_UPDATE_STORES,
+  KEYBOARDS_EDIT_DEFINITION_UPDATE_UPLOADED_RATE,
+  KEYBOARDS_EDIT_DEFINITION_UPDATE_UPLOADING,
+  KEYBOARDS_EDIT_DEFINITION_UPDATE_WEBSITE_URL,
 } from '../actions/keyboards.actions';
 import { MOD_LEFT } from '../services/hid/Composition';
 import { LayoutOption } from '../components/configure/keymap/Keymap';
+import {
+  CATALOG_APP_ACTIONS,
+  CATALOG_APP_UPDATE_PHASE,
+  CATALOG_KEYBOARD_ACTIONS,
+  CATALOG_KEYBOARD_UPDATE_KEYMAPS,
+  CATALOG_KEYBOARD_UPDATE_LANG_LABEL,
+  CATALOG_KEYBOARD_UPDATE_SELECTED_LAYER,
+  CATALOG_SEARCH_ACTIONS,
+  CATALOG_SEARCH_CLEAR_FEATURES,
+  CATALOG_SEARCH_UPDATE_FEATURES,
+  CATALOG_SEARCH_UPDATE_KEYWORD,
+} from '../actions/catalog.action';
 
 export type Action = { type: string; value: any };
 
@@ -140,6 +166,12 @@ const reducers = (state: RootState = INIT_STATE, action: Action) =>
       keyboardsCreateKeyboardReducer(action, draft);
     } else if (action.type.startsWith(KEYBOARDS_EDIT_DEFINITION_ACTIONS)) {
       keyboardsEditKeyboardReducer(action, draft);
+    } else if (action.type.startsWith(CATALOG_SEARCH_ACTIONS)) {
+      catalogSearchReducer(action, draft);
+    } else if (action.type.startsWith(CATALOG_APP_ACTIONS)) {
+      catalogAppReducer(action, draft);
+    } else if (action.type.startsWith(CATALOG_KEYBOARD_ACTIONS)) {
+      catalogKeyboardReducer(action, draft);
     }
   });
 
@@ -220,6 +252,40 @@ const keyboardsEditKeyboardReducer = (
     case KEYBOARDS_EDIT_DEFINITION_UPDATE_QMK_REPOSITORY_FIRST_PULL_REQUEST_URL:
       draft.keyboards.editdefinition.qmkRepositoryFirstPullRequestUrl =
         action.value;
+      break;
+    case KEYBOARDS_EDIT_DEFINITION_UPDATE_FEATURES:
+      draft.keyboards.editdefinition.features = action.value;
+      break;
+    case KEYBOARDS_EDIT_DEFINITION_UPDATE_FEATURE: {
+      const newFeatures = [...draft.keyboards.editdefinition.features];
+      const targetFeatures = action.value.targetFeatures;
+      const value = action.value.value;
+      targetFeatures.forEach((x: IKeyboardFeatures) => {
+        const index = newFeatures.indexOf(x);
+        if (index !== -1) {
+          newFeatures.splice(index, 1);
+        }
+      });
+      if (value !== CONDITION_NOT_SELECTED) {
+        newFeatures.push(value);
+      }
+      draft.keyboards.editdefinition.features = newFeatures;
+      break;
+    }
+    case KEYBOARDS_EDIT_DEFINITION_UPDATE_UPLOADED_RATE:
+      draft.keyboards.editdefinition.uploadedRate = action.value;
+      break;
+    case KEYBOARDS_EDIT_DEFINITION_UPDATE_UPLOADING:
+      draft.keyboards.editdefinition.uploading = action.value;
+      break;
+    case KEYBOARDS_EDIT_DEFINITION_UPDATE_DESCRIPTION:
+      draft.keyboards.editdefinition.description = action.value;
+      break;
+    case KEYBOARDS_EDIT_DEFINITION_UPDATE_STORES:
+      draft.keyboards.editdefinition.stores = action.value;
+      break;
+    case KEYBOARDS_EDIT_DEFINITION_UPDATE_WEBSITE_URL:
+      draft.keyboards.editdefinition.websiteUrl = action.value;
       break;
   }
 };
@@ -321,6 +387,10 @@ const storageReducer = (action: Action, draft: WritableDraft<RootState>) => {
     }
     case STORAGE_UPDATE_APPLIED_KEYMAPS: {
       draft.entities.appliedKeymaps = action.value;
+      break;
+    }
+    case STORAGE_UPDATE_SEARCH_RESULT_KEYBOARD_DEFINITION_DOCUMENT: {
+      draft.entities.searchResultKeyboardDocuments = action.value;
       break;
     }
   }
@@ -659,6 +729,63 @@ const headerReducer = (action: Action, draft: WritableDraft<RootState>) => {
       draft.configure.header.flashing = action.value;
       break;
     }
+  }
+};
+
+const catalogSearchReducer = (
+  action: Action,
+  draft: WritableDraft<RootState>
+) => {
+  switch (action.type) {
+    case CATALOG_SEARCH_UPDATE_FEATURES: {
+      const newFeatures = [...draft.catalog.search.features];
+      const targetFeatures = action.value.targetFeatures;
+      const value = action.value.value;
+      targetFeatures.forEach((x: IKeyboardFeatures) => {
+        const index = newFeatures.indexOf(x);
+        if (index !== -1) {
+          newFeatures.splice(index, 1);
+        }
+      });
+      if (value !== CONDITION_NOT_SELECTED) {
+        newFeatures.push(value);
+      }
+      draft.catalog.search.features = newFeatures;
+      break;
+    }
+    case CATALOG_SEARCH_UPDATE_KEYWORD: {
+      draft.catalog.search.keyword = action.value;
+      break;
+    }
+    case CATALOG_SEARCH_CLEAR_FEATURES: {
+      draft.catalog.search.features = [];
+      break;
+    }
+  }
+};
+
+const catalogAppReducer = (action: Action, draft: WritableDraft<RootState>) => {
+  switch (action.type) {
+    case CATALOG_APP_UPDATE_PHASE:
+      draft.catalog.app.phase = action.value;
+      break;
+  }
+};
+
+const catalogKeyboardReducer = (
+  action: Action,
+  draft: WritableDraft<RootState>
+) => {
+  switch (action.type) {
+    case CATALOG_KEYBOARD_UPDATE_KEYMAPS:
+      draft.catalog.keyboard.keymaps = action.value;
+      break;
+    case CATALOG_KEYBOARD_UPDATE_SELECTED_LAYER:
+      draft.catalog.keyboard.selectedLayer = action.value;
+      break;
+    case CATALOG_KEYBOARD_UPDATE_LANG_LABEL:
+      draft.catalog.keyboard.langLabel = action.value;
+      break;
   }
 };
 

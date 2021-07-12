@@ -303,8 +303,8 @@ export const AppActionsThunk = {
     getState: () => RootState
   ) => {
     const { auth } = getState();
-    await auth.instance!.signOut();
     dispatch(AppActions.updateSignedIn(false));
+    await auth.instance!.signOut();
     dispatch(await hidActionsThunk.closeOpenedKeyboard());
     dispatch(AppActions.updateSetupPhase(SetupPhase.keyboardNotSelected));
   },
